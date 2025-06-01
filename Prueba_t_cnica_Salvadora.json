@@ -1,0 +1,942 @@
+{
+  "name": "Prueba técnica Salvadora",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "770ad6d1-de28-425b-aa21-0d25a20165b5",
+              "name": "Fecha ",
+              "value": "={{ $json.headers.date }}",
+              "type": "string"
+            },
+            {
+              "id": "6a986f3e-36f2-4b2e-8167-db05bbcee2d3",
+              "name": "Email",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "7d84daba-3754-4cb4-a764-4c5917ce1390",
+              "name": "Asunto",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "36423093-e7f2-4200-a72b-0cc8eee598f8",
+              "name": "Descripcion",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "0f1854a0-7d07-4cdd-8ae2-af8bee567ccf",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "id": "2a132a25-8194-4b80-a1e0-26097f799f5f",
+      "name": "Clear Data"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9932dcca-dd3a-4330-b3c4-31d92412a38f",
+      "name": "GET EMAIL",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aZZAQT5LDBRD5Hbm",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Rol:\nActúas como un agente responsable de clasificar emails entrantes.\n\nObjetivo:\nTu tarea es analizar el contenido de cada email y determinar si corresponde a una **solicitud de soporte técnico**. Esto incluye temas como:\n\n- Problemas técnicos con productos, servicios, el sitio web o la aplicación.\n- Fallos de funcionamiento, errores, bloqueos u otros incidentes técnicos.\n- Necesidad de asistencia técnica por parte del equipo de soporte.\n\nSi el email menciona alguno de estos casos en el **asunto o cuerpo**, clasifícalo como `true`; de lo contrario, como `false`.\n\nOutput:\nDevuelve el resultado en formato JSON, en un campo llamado `\"Soporte-Tecnico\"` configurado como `true` o `false`.\n\nEjemplo de output esperado:\n```json\n{\n  \"Soporte-Tecnico\": true\n} \n",
+              "role": "system"
+            },
+            {
+              "content": "=Este es el asunto del email:{{ $json.Asunto }}"
+            },
+            {
+              "content": "=Esta es el cuerpo del email:{{ $json.Descripcion }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        420,
+        0
+      ],
+      "id": "ab7b5c69-6f67-45f4-9241-d3512458dd43",
+      "name": "Validation support",
+      "credentials": {
+        "openAiApi": {
+          "id": "CWoLb9He0qa8H7cC",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.content['Soporte-Tecnico'] }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "5cd73c43-d396-445e-b49a-0e77303da569"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Soporte Técnico"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "756f2413-2305-4a8e-acfe-2af273f45942",
+                    "leftValue": "={{ $json.message.content['Soporte-Tecnico'] }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "No - Soporte Técnico "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        780,
+        0
+      ],
+      "id": "36170b75-f468-4314-a41a-2df0c719a360",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Rol:\nActúas como un agente que procesa correos electrónicos entrantes para registrar automáticamente tickets de soporte técnico en una hoja de cálculo de Google Sheets.\n\nObjetivo:\nAnaliza el contenido de cada email y extrae la información necesaria para llenar una fila en una hoja de cálculo. Debes identificar y devolver los siguientes campos:\n\nFecha: Fecha en la que fue enviado el email.\n\nEmail: Dirección de correo del remitente.\n\nAsunto: Título o tema del email.\n\nDescripción: Extrae el texto que aparece después del encabezado \"Descripción del problema:\" en el cuerpo del correo.\n\nEstado: Si el email contiene un encabezado \"Estado:\", extrae su valor. Si no lo contiene, usa por defecto el valor \"Nuevo\", pero si el asunto o el contenido contiene palabaras como “urgente”, “no funciona”, “caído” marcar el Estado como prioritario\n\nFormato de salida esperado:\nDevuelve un bloque JSON con las siguientes claves: Fecha, Email, Asunto, Descripción, Estado. Este bloque debe estar listo para ser insertado como una fila en una hoja de Google Sheets.\n\nEjemplo de salida esperada:\n\njson\nCopiar\nEditar\n{\n  \"Fecha\": \"30 de mayo de 2025\",\n  \"Email\": \"laura.fernandez@empresa.com\",\n  \"Asunto\": \"Solicitud de soporte técnico – Error en acceso a plataforma interna\",\n  \"Descripción\": \"Al intentar ingresar al sistema, aparece un mensaje de error: “Error 403 – Acceso denegado. No tiene permisos para acceder a esta sección.” Ya intenté reiniciar el equipo y borrar caché, pero el problema persiste.\",\n  \"Estado\": \"Nuevo\"\n}\n",
+              "role": "system"
+            },
+            {
+              "content": "=Fecha: {{ $('Clear Data').item.json['Fecha '] }}"
+            },
+            {
+              "content": "=Email: {{ $('Clear Data').item.json.Email }}"
+            },
+            {
+              "content": "=Asunto: {{ $('Clear Data').item.json.Asunto }}"
+            },
+            {
+              "content": "=Descripción: {{ $('Clear Data').item.json.Descripcion }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1000,
+        -140
+      ],
+      "id": "39ae4151-2b15-4b2d-bef2-f278ac658133",
+      "name": "Clear Data 2",
+      "credentials": {
+        "openAiApi": {
+          "id": "CWoLb9He0qa8H7cC",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1iDChZhS5UgepRXstrvIkzcK--_ABiriK5fS21Syrdxs",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Soporte Tecnico",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iDChZhS5UgepRXstrvIkzcK--_ABiriK5fS21Syrdxs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $json.message.content.Fecha }}",
+            "Email": "={{ $json.message.content.Email }}",
+            "Asunto": "={{ $json.message.content.Asunto }}",
+            "Descripción": "={{ $json.message.content['Descripción'] }}",
+            "Estado": "={{ $json.message.content.Estado }}"
+          },
+          "matchingColumns": [
+            "Fecha"
+          ],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Asunto",
+              "displayName": "Asunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Descripción",
+              "displayName": "Descripción",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1340,
+        -140
+      ],
+      "id": "205089ab-cb1e-4b5d-b6c8-8a7c7bdc4a73",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MLBqT5ngOY4N7Tff",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "listId": "683a7ff0ccc9e8f60122e8b8",
+        "name": "={{ $('Google Sheets').item.json.Asunto }}",
+        "description": "=Fecha: {{ $('Google Sheets').item.json.Fecha }}\nAsunto: {{ $('Google Sheets').item.json.Asunto }}\nEmail: {{ $('Google Sheets').item.json.Email }}\nDescripcion: {{ $('Google Sheets').item.json['Descripción'] }}\nEstado: {{ $('Google Sheets').item.json.Estado }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.trello",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        -240
+      ],
+      "id": "04cfb026-bc69-482c-a021-75a73d3fb778",
+      "name": "Trello",
+      "credentials": {
+        "trelloApi": {
+          "id": "G7A1vUW8dTsxICvR",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Rol:\nActúas como un agente que procesa correos electrónicos entrantes para registrar automáticamente tickets de soporte técnico en una hoja de cálculo de Google Sheets.\n\nObjetivo:\nAnaliza el contenido de cada email y extrae la información necesaria para llenar una fila en una hoja de cálculo. Debes identificar y devolver los siguientes campos:\n\nFecha: Fecha en la que fue enviado el email.\n\nEmail: Dirección de correo del remitente.\n\nAsunto: Título o tema del email.\n\nDescripción: Extrae el texto que aparece después del encabezado \"Descripción del problema:\" en el cuerpo del correo.\n\nEstado: Si el email contiene un encabezado \"Estado:\", extrae su valor. Si no lo contiene, usa por defecto el valor \"Nuevo\", pero si el asunto o el contenido contiene palabaras como “urgente”, “no funciona”, “caído” marcar el Estado como prioritario\n\nFormato de salida esperado:\nDevuelve un bloque JSON con las siguientes claves: Fecha, Email, Asunto, Descripción, Estado. Este bloque debe estar listo para ser insertado como una fila en una hoja de Google Sheets.\n\nEjemplo de salida esperada:\n\njson\nCopiar\nEditar\n{\n  \"Fecha\": \"30 de mayo de 2025\",\n  \"Email\": \"laura.fernandez@empresa.com\",\n  \"Asunto\": \"Solicitud de soporte técnico – Error en acceso a plataforma interna\",\n  \"Descripción\": \"Al intentar ingresar al sistema, aparece un mensaje de error: “Error 403 – Acceso denegado. No tiene permisos para acceder a esta sección.” Ya intenté reiniciar el equipo y borrar caché, pero el problema persiste.\",\n  \"Estado\": \"Nuevo\"\n}\n",
+              "role": "system"
+            },
+            {
+              "content": "=Fecha: {{ $('Clear Data').item.json['Fecha '] }}"
+            },
+            {
+              "content": "=Email: {{ $('Clear Data').item.json.Email }}"
+            },
+            {
+              "content": "=Asunto: {{ $('Clear Data').item.json.Asunto }}"
+            },
+            {
+              "content": "=Descripción: {{ $('Clear Data').item.json.Descripcion }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1000,
+        140
+      ],
+      "id": "b4f5bce8-3e50-4785-ba2d-ab3f7da245a4",
+      "name": "Clear Data ",
+      "credentials": {
+        "openAiApi": {
+          "id": "CWoLb9He0qa8H7cC",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "80e181be-d2b7-43d5-98d0-cda3fe64ffca",
+              "leftValue": "={{ $json.Estado }}",
+              "rightValue": "Prioritario",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        -140
+      ],
+      "id": "9512485f-772c-47d0-b42b-02f19439581b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "samuel@henkki.co",
+        "subject": "={{ $json.Asunto }}",
+        "message": "=<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Nuevo Ticket de Soporte</title>\n</head>\n<body>\n  <h2>Nuevo Ticket de Soporte</h2>\n\n  <p><strong>Email del remitente:</strong>{{ $json.Email }}</p>\n\n  <p><strong>Asunto:</strong>{{ $json.Asunto }}</p>\n\n  <p><strong>Fecha:</strong>{{ $json.Fecha }}</p>\n\n  <p><strong>Estado:</strong>{{ $json.Estado }}</p>\n\n  <p><strong>Descripción:</strong><br>\n{{ $json['Descripción'] }}\n  </p>\n</body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1780,
+        -240
+      ],
+      "id": "ae3a76da-de57-4e2d-b18c-5482ddb6054f",
+      "name": "Email Slack",
+      "webhookId": "bb7c6e7e-c3dd-4f00-8bf5-0a7364e249e7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aZZAQT5LDBRD5Hbm",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "samuel@henkki.co",
+        "subject": "={{ $('Google Sheets').item.json.Asunto }}",
+        "message": "=<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Confirmación de recepción de soporte técnico</title>\n</head>\n<body>\n  <h2>Confirmación de recepción de tu solicitud de soporte técnico</h2>\n\n  <p>Hola {{ $('Google Sheets').item.json.Email }},</p>\n\n  <p>Hemos recibido tu solicitud de soporte técnico con el asunto:</p>\n\n  <p><em>“{{ $('Google Sheets').item.json.Asunto }}”</em></p>\n\n  <p>Nuestro equipo ya está al tanto del incidente y comenzará a revisarlo lo antes posible.</p>\n\n  <p><strong>Fecha de recepción:</strong>{{ $('Google Sheets').item.json.Fecha }}</p>\n\n  <p><strong>Área afectada:</strong>{{ $('Google Sheets').item.json['Descripción'] }}</p>\n\n  <p><strong>Estado del ticket:</strong>{{ $('Google Sheets').item.json.Estado }}</p>\n\n  <p>Agradecemos que hayas reportado este problema.</p>\n\n  <p>Nos comunicaremos contigo si requerimos información adicional o para notificarte sobre la solución del caso.</p>\n\n  <p>Saludos,<br>\n  Equipo de Soporte Técnico<br>\n{{ $('GET EMAIL').item.json.to.value[0].address }}</p>\n</body>\n</html>\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1980,
+        -240
+      ],
+      "id": "77170c8c-54a2-4e79-bb47-5c49f6f1f8f8",
+      "name": "Confirmacion Email",
+      "webhookId": "bb7c6e7e-c3dd-4f00-8bf5-0a7364e249e7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aZZAQT5LDBRD5Hbm",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "samuel@henkki.co",
+        "subject": "={{ $('Google Sheets').item.json.Asunto }}",
+        "message": "=<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Confirmación de recepción de soporte técnico</title>\n</head>\n<body>\n  <h2>Confirmación de recepción de tu solicitud de soporte técnico</h2>\n\n  <p>Hola {{ $('Google Sheets').item.json.Email }},</p>\n\n  <p>Hemos recibido tu solicitud de soporte técnico con el asunto:</p>\n\n  <p><em>“{{ $('Google Sheets').item.json.Asunto }}”</em></p>\n\n  <p>Nuestro equipo ya está al tanto del incidente y comenzará a revisarlo lo antes posible.</p>\n\n  <p><strong>Fecha de recepción:</strong>{{ $('Google Sheets').item.json.Fecha }}</p>\n\n  <p><strong>Área afectada:</strong>{{ $('Google Sheets').item.json['Descripción'] }}</p>\n\n  <p><strong>Estado del ticket:</strong>{{ $('Google Sheets').item.json.Estado }}</p>\n\n  <p>Agradecemos que hayas reportado este problema.</p>\n\n  <p>Nos comunicaremos contigo si requerimos información adicional o para notificarte sobre la solución del caso.</p>\n\n  <p>Saludos,<br>\n  Equipo de Soporte Técnico<br>\n{{ $('GET EMAIL').item.json.to.value[0].address }}</p>\n</body>\n</html>\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1780,
+        -60
+      ],
+      "id": "5d2e7d53-3121-42b4-886d-0720aaa2628c",
+      "name": "Confirmacion Email1",
+      "webhookId": "bb7c6e7e-c3dd-4f00-8bf5-0a7364e249e7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aZZAQT5LDBRD5Hbm",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/d1566dad-ae88-4c91-ae52-3478e234f80c",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=Fecha:",
+              "value": "={{ $('Google Sheets').item.json.Fecha }}"
+            },
+            {
+              "name": "Email:",
+              "value": "={{ $('Google Sheets').item.json.Email }}"
+            },
+            {
+              "name": "Asunto:",
+              "value": "={{ $('Google Sheets').item.json.Asunto }}"
+            },
+            {
+              "name": "Descripcion:",
+              "value": "={{ $('Google Sheets').item.json['Descripción'] }}"
+            },
+            {
+              "name": "Estado:",
+              "value": "={{ $('Google Sheets').item.json.Estado }}"
+            },
+            {
+              "name": "ID:",
+              "value": "={{ $('GET EMAIL').item.json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        -240
+      ],
+      "id": "ca9ad521-3ec8-4329-8888-b3b727e16203",
+      "name": "HTTP Slack Prioritario"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/d1566dad-ae88-4c91-ae52-3478e234f80c",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=Fecha:",
+              "value": "={{ $('Google Sheets').item.json.Fecha }}"
+            },
+            {
+              "name": "Email:",
+              "value": "={{ $('Google Sheets').item.json.Email }}"
+            },
+            {
+              "name": "Asunto:",
+              "value": "={{ $('Google Sheets').item.json.Asunto }}"
+            },
+            {
+              "name": "Descripcion:",
+              "value": "={{ $('Google Sheets').item.json['Descripción'] }}"
+            },
+            {
+              "name": "Estado:",
+              "value": "={{ $('Google Sheets').item.json.Estado }}"
+            },
+            {
+              "name": "ID:",
+              "value": "={{ $('GET EMAIL').item.json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        -60
+      ],
+      "id": "25c848af-50c0-42fb-9ae8-60bf1700ad7c",
+      "name": "HTTP Slack No - Prioritario"
+    },
+    {
+      "parameters": {
+        "listId": "683a7ff0ccc9e8f60122e8b8",
+        "name": "={{ $('Google Sheets').item.json.Asunto }}",
+        "description": "=Fecha: {{ $('Google Sheets').item.json.Fecha }}\nAsunto: {{ $('Google Sheets').item.json.Asunto }}\nEmail: {{ $('Google Sheets').item.json.Email }}\nDescripcion: {{ $('Google Sheets').item.json['Descripción'] }}\nEstado: {{ $('Google Sheets').item.json.Estado }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.trello",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        -60
+      ],
+      "id": "12bc6abb-dc80-4f84-a340-2e1e5c2c6cbf",
+      "name": "Trello1",
+      "credentials": {
+        "trelloApi": {
+          "id": "G7A1vUW8dTsxICvR",
+          "name": "Trello account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1iDChZhS5UgepRXstrvIkzcK--_ABiriK5fS21Syrdxs",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1622328584,
+          "mode": "list",
+          "cachedResultName": "No - Soporte Tecnico ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iDChZhS5UgepRXstrvIkzcK--_ABiriK5fS21Syrdxs/edit#gid=1622328584"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $json.message.content.Fecha }}",
+            "Email": "={{ $json.message.content.Email }}",
+            "Asunto": "={{ $json.message.content.Asunto }}",
+            "Descripción": "={{ $json.message.content['Descripción'] }}",
+            "Estado": "={{ $json.message.content.Estado }}"
+          },
+          "matchingColumns": [
+            "Fecha"
+          ],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Asunto",
+              "displayName": "Asunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Descripción",
+              "displayName": "Descripción",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1340,
+        140
+      ],
+      "id": "51049085-c1d9-4171-b6d3-625343084cc4",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MLBqT5ngOY4N7Tff",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "samuel@henkki.co",
+        "subject": "={{ $json.Asunto }}",
+        "message": "=<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Confirmación de recepción de tu solicitud</title>\n</head>\n<body>\n  <h2>Confirmación de recepción de tu solicitud de soporte técnico</h2>\n\n  <p>Hola {{ $json.Email }},</p>\n\n  <p>Gracias por comunicarte con nosotros.</p>\n\n  <p>Hemos recibido tu mensaje con el asunto:</p>\n\n  <p><em>“{{ $json.Asunto }}”</em></p>\n\n  <p>Luego de revisar el contenido, hemos identificado que tu solicitud no corresponde al área de soporte técnico.</p>\n\n  <p>Hemos redirigido el ticket al área correspondiente para que pueda ser atendido de manera adecuada.</p>\n\n  <p><strong>Resumen del mensaje recibido:</strong></p>\n\n  <p><strong>Fecha de recepción:</strong>{{ $json.Fecha }} </p>\n  <p><strong>Área posible:</strong>{{ $json['Descripción'] }}</p>\n  <p><strong>Estado del ticket:</strong>{{ $json.Estado }} </p>\n\n  <p>En caso de que sea necesario, el área encargada se pondrá en contacto contigo para dar seguimiento.</p>\n\n  <p>Saludos,<br>\n  Equipo de Atención<br>\n  {{ $('GET EMAIL').item.json.to.value[0].address }}\n</body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1560,
+        140
+      ],
+      "id": "995b65e6-19e7-422c-9678-8aaec1279329",
+      "name": "Confirmacion Email2",
+      "webhookId": "bb7c6e7e-c3dd-4f00-8bf5-0a7364e249e7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aZZAQT5LDBRD5Hbm",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "listId": "683aa6a884516946033e8816",
+        "name": "={{ $('Google Sheets1').item.json.Asunto }}",
+        "description": "=Fecha: {{ $('Google Sheets1').item.json.Fecha }}\nAsunto: {{ $('Google Sheets1').item.json.Asunto }}\nEmail: {{ $('Google Sheets1').item.json.Email }}\nDescripcion: {{ $('Google Sheets1').item.json['Descripción'] }}\nEstado: {{ $('Google Sheets1').item.json.Estado }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.trello",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        140
+      ],
+      "id": "d455a494-8ce5-4da3-9b7f-19bdeccb62a3",
+      "name": "Trello2",
+      "credentials": {
+        "trelloApi": {
+          "id": "G7A1vUW8dTsxICvR",
+          "name": "Trello account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Clear Data": {
+      "main": [
+        [
+          {
+            "node": "Validation support",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET EMAIL": {
+      "main": [
+        [
+          {
+            "node": "Clear Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation support": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Clear Data 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Clear Data ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Data 2": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Email Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmacion Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Slack": {
+      "main": [
+        [
+          {
+            "node": "Confirmacion Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmacion Email": {
+      "main": [
+        [
+          {
+            "node": "HTTP Slack Prioritario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmacion Email1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Slack No - Prioritario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Slack Prioritario": {
+      "main": [
+        [
+          {
+            "node": "Trello",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Slack No - Prioritario": {
+      "main": [
+        [
+          {
+            "node": "Trello1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Data ": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "main": [
+        [
+          {
+            "node": "Confirmacion Email2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmacion Email2": {
+      "main": [
+        [
+          {
+            "node": "Trello2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e23be2dd-6d90-4de7-8cc3-7a90c6e92f15",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a54338b0f036c50d1157948b9b18deb62d15250f298bd9d7185bc6883cb23485"
+  },
+  "id": "ffCjDQ5wte759fKD",
+  "tags": []
+}
